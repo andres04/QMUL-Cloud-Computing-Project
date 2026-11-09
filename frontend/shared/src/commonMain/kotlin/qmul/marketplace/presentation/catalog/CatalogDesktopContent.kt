@@ -30,8 +30,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import qmul.marketplace.domain.model.Product
-import qmul.marketplace.presentation.catalog.components.CategoryChips
+import qmul.marketplace.navigation.Destination
 import qmul.marketplace.presentation.catalog.components.CatalogTopBar
+import qmul.marketplace.presentation.catalog.components.CategoryChips
 import qmul.marketplace.presentation.catalog.components.FilterSidebar
 import qmul.marketplace.presentation.catalog.components.PaginationControls
 import qmul.marketplace.presentation.catalog.components.ProductCard
@@ -43,6 +44,7 @@ import qmul.marketplace.presentation.catalog.components.ProductCard
 fun CatalogDesktopContent(
     state: CatalogState,
     onEvent: (CatalogEvents) -> Unit,
+    onNavigate: (Destination) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -55,7 +57,9 @@ fun CatalogDesktopContent(
             searchQuery = state.searchQuery,
             onSearchQueryChanged = { onEvent(CatalogEvents.OnSearch(it)) },
             cartItemCount = state.cartItems.size,
-            isMobile = false
+            isMobile = false,
+            onLoginClick = { onNavigate(Destination.Login) },
+            onBasketClick = { onNavigate(Destination.Basket) }
         )
 
         HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp)

@@ -5,8 +5,13 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.koin.core.module.dsl.singleOf
+import org.koin.dsl.bind
 import org.koin.dsl.module
+import qmul.marketplace.data.network.AuthApi
 import qmul.marketplace.data.network.ProductApi
+import qmul.marketplace.data.repositories.AuthRepositoryImpl
+import qmul.marketplace.domain.repository.AuthRepository
 
 val dataModule = module {
     // Ktor Client with CIO engine
@@ -24,6 +29,10 @@ val dataModule = module {
         }
     }
 
-    // Network API explicit factory (avoids Koin trying to resolve String for default baseUrl)
+    // Network APIs
     single { ProductApi(get()) }
+    single { AuthApi(get()) }
+
+    // Repositories
+    singleOf(::AuthRepositoryImpl) bind AuthRepository::class
 }

@@ -32,7 +32,8 @@ fun CatalogScreen(
         } else {
             CatalogDesktopContent(
                 state = state,
-                onEvent = onEvent
+                onEvent = onEvent,
+                onNavigate = onNavigate
             )
         }
     }

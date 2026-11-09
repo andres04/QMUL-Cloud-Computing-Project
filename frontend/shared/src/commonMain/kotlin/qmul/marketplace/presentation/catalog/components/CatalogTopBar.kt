@@ -43,6 +43,10 @@ fun CatalogTopBar(
     onSearchQueryChanged: (String) -> Unit,
     cartItemCount: Int,
     isMobile: Boolean,
+    showSearch: Boolean = true,
+    showLoginButton: Boolean = true,
+    onLoginClick: () -> Unit = {},
+    onBasketClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -89,7 +93,7 @@ fun CatalogTopBar(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clickable { }
+                        .clickable { onBasketClick() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(
@@ -107,21 +111,23 @@ fun CatalogTopBar(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                if (showLoginButton) {
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                // Desktop Log in Button
-                Button(
-                    onClick = { },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Text(text = "Log in", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    // Desktop Log in Button
+                    Button(
+                        onClick = onLoginClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.height(38.dp)
+                    ) {
+                        Text(text = "Log in", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
 
-        if (!isMobile) {
+        if (!isMobile && showSearch) {
             Spacer(modifier = Modifier.height(12.dp))
 
             // Desktop Search Field

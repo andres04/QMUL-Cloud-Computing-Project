@@ -19,5 +19,8 @@ sealed interface Destination {
     data object Login : Destination
 
     @Serializable
+    data object SignUp : Destination
+
+    @Serializable
     data class ProductDetail(val productId: String) : Destination
 }

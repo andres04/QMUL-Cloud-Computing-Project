@@ -12,6 +12,9 @@ import qmul.marketplace.presentation.basket.BasketView
 import qmul.marketplace.presentation.catalog.CatalogView
 import qmul.marketplace.presentation.catalog.catalogModule
 import qmul.marketplace.presentation.login.LoginView
+import qmul.marketplace.presentation.login.loginModule
+import qmul.marketplace.presentation.signup.SignUpView
+import qmul.marketplace.presentation.signup.signUpModule
 
 /**
  * Consolidated list of Koin modules for global application dependency injection.
@@ -20,7 +23,9 @@ val appModules = listOf(
     domainModule,
     dataModule,
     platformModule,
-    catalogModule
+    catalogModule,
+    loginModule,
+    signUpModule
 )
 
 /**
@@ -53,6 +58,11 @@ fun App() {
                         LoginView(
                             onNavigate = onNavigate,
                             currentDestination = destination
+                        )
+                    }
+                    is Destination.SignUp -> {
+                        SignUpView(
+                            onNavigate = onNavigate
                         )
                     }
                     is Destination.ProductDetail -> {
