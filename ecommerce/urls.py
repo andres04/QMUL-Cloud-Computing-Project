@@ -15,8 +15,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+
+
+admin.site.has_permission = lambda request: request.user.is_active and request.user.is_superuser
+admin.site.site_header = "Luxury Inventory Superuser Admin"
+admin.site.site_title = "Inventory Admin"
+admin.site.index_title = "Merchants, Customers & Product Catalog"
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('inventory/', include('inventory.urls')),
+    path('accounts/', include('accounts.urls')),
 ]
