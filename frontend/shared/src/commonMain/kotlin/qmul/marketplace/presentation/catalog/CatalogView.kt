@@ -1,10 +1,11 @@
 package qmul.marketplace.presentation.catalog
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 import qmul.marketplace.navigation.Destination
 
 /**
@@ -15,9 +16,13 @@ fun CatalogView(
     onNavigate: (Destination) -> Unit = {},
     currentDestination: Destination = Destination.Catalog,
     modifier: Modifier = Modifier,
-    viewModel: CatalogViewModel = koinViewModel()
+    viewModel: CatalogViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(currentDestination) {
+        viewModel.onEvent(CatalogEvents.OnTabChanged(isSearchTab = currentDestination is Destination.Search))
+    }
 
     CatalogScreen(
         state = uiState,

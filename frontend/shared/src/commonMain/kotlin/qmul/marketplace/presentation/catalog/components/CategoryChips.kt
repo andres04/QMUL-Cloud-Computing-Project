@@ -32,22 +32,34 @@ private val defaultCategories = listOf(
 )
 
 /**
- * Category chips component allowing category selection.
+ * Category chips component allowing category selection, placing "Custom" first when custom filters are active.
  */
 @Composable
 fun CategoryChips(
     selectedCategory: String?,
     onCategorySelected: (String?) -> Unit,
+    hasCustomFilter: Boolean = false,
     categories: List<String> = defaultCategories,
     modifier: Modifier = Modifier
 ) {
+    val displayCategories = if (hasCustomFilter || selectedCategory == "Custom") {
+        val remaining = categories.filter { it != "Custom" }
+        listOf("Custom") + remaining
+    } else {
+        categories
+    }
+
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        categories.forEach { category ->
-            val isSelected = if (category == "All") selectedCategory.isNullOrBlank() else selectedCategory == category
+        displayCategories.forEach { category ->
+            val isSelected = if (category == "All") {
+                selectedCategory.isNullOrBlank()
+            } else {
+                selectedCategory == category
+            }
             val backgroundColor = if (isSelected) Color(0xFF1E293B) else Color.White
             val textColor = if (isSelected) Color.White else Color(0xFF1E293B)
             val borderColor = Color(0xFF1E293B)
@@ -60,7 +72,7 @@ fun CategoryChips(
                     .clickable {
                         onCategorySelected(if (category == "All") null else category)
                     }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = category,
@@ -79,7 +91,8 @@ private fun CategoryChipsPreview() {
     MaterialTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             CategoryChips(
-                selectedCategory = "Ceramics",
+                selectedCategory = "Custom",
+                hasCustomFilter = true,
                 onCategorySelected = {}
             )
         }

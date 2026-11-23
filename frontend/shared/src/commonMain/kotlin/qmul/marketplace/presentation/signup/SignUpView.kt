@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 import qmul.marketplace.navigation.Destination
 
 /**
@@ -15,7 +15,7 @@ import qmul.marketplace.navigation.Destination
 fun SignUpView(
     modifier: Modifier = Modifier,
     onNavigate: (Destination) -> Unit = {},
-    viewModel: SignUpViewModel = koinViewModel()
+    viewModel: SignUpViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

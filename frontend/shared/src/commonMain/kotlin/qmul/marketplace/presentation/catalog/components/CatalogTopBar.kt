@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -29,13 +30,76 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+private val SortIconVector: ImageVector
+    get() = ImageVector.Builder(
+        name = "SortIcon",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(fill = SolidColor(Color(0xFF0F172A))) {
+            moveTo(3f, 18f)
+            horizontalLineToRelative(6f)
+            verticalLineToRelative(-2f)
+            lineTo(3f, 16f)
+            verticalLineToRelative(2f)
+            close()
+            moveTo(3f, 6f)
+            verticalLineToRelative(2f)
+            horizontalLineToRelative(18f)
+            lineTo(21f, 6f)
+            lineTo(3f, 6f)
+            close()
+            moveTo(3f, 13f)
+            horizontalLineToRelative(12f)
+            verticalLineToRelative(-2f)
+            lineTo(3f, 11f)
+            verticalLineToRelative(2f)
+            close()
+        }
+    }.build()
+
+private val FilterIconVector: ImageVector
+    get() = ImageVector.Builder(
+        name = "FilterIcon",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(fill = SolidColor(Color(0xFF0F172A))) {
+            moveTo(10f, 18f)
+            horizontalLineToRelative(4f)
+            verticalLineToRelative(-2f)
+            horizontalLineToRelative(-4f)
+            verticalLineToRelative(2f)
+            close()
+            moveTo(3f, 6f)
+            verticalLineToRelative(2f)
+            horizontalLineToRelative(18f)
+            lineTo(21f, 6f)
+            lineTo(3f, 6f)
+            close()
+            moveTo(6f, 13f)
+            horizontalLineToRelative(12f)
+            verticalLineToRelative(-2f)
+            lineTo(6f, 11f)
+            verticalLineToRelative(2f)
+            close()
+        }
+    }.build()
+
 /**
- * Top Navigation Bar for Web and Mobile with status bars padding to prevent overlapping with system UI.
+ * Top Navigation Bar for Web and Mobile with statusBarsPadding on mobile for system inset alignment.
  */
 @Composable
 fun CatalogTopBar(
@@ -47,13 +111,15 @@ fun CatalogTopBar(
     showLoginButton: Boolean = true,
     onLoginClick: () -> Unit = {},
     onBasketClick: () -> Unit = {},
+    onMobileSortClick: (() -> Unit)? = null,
+    onMobileFilterClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
-            .statusBarsPadding()
+            .then(if (isMobile) Modifier.statusBarsPadding() else Modifier)
             .padding(horizontal = if (isMobile) 16.dp else 24.dp, vertical = 12.dp)
     ) {
         Row(
@@ -88,7 +154,36 @@ fun CatalogTopBar(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            if (!isMobile) {
+            if (isMobile) {
+                if (onMobileSortClick != null) {
+                    IconButton(
+                        onClick = onMobileSortClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = SortIconVector,
+                            contentDescription = "Sort",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
+                if (onMobileFilterClick != null) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    IconButton(
+                        onClick = onMobileFilterClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = FilterIconVector,
+                            contentDescription = "Filter",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            } else {
                 // Desktop Basket Button
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -172,7 +267,9 @@ private fun CatalogTopBarPreview() {
             searchQuery = "",
             onSearchQueryChanged = {},
             cartItemCount = 2,
-            isMobile = false
+            isMobile = true,
+            onMobileSortClick = {},
+            onMobileFilterClick = {}
         )
     }
 }

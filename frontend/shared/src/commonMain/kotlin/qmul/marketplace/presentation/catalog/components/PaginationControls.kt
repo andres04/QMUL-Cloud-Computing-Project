@@ -31,6 +31,10 @@ fun PaginationControls(
     onPageChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val total = maxOf(1, totalPages)
+    val isPrevEnabled = currentPage > 1
+    val isNextEnabled = currentPage < total
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -41,15 +45,25 @@ fun PaginationControls(
             modifier = Modifier
                 .size(32.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(6.dp))
-                .clickable(enabled = currentPage > 1) { onPageChanged(currentPage - 1) },
+                .background(if (isPrevEnabled) Color.White else Color(0xFFF1F5F9))
+                .border(
+                    width = 1.dp,
+                    color = if (isPrevEnabled) Color(0xFF1E293B) else Color(0xFFCBD5E1),
+                    shape = RoundedCornerShape(6.dp)
+                )
+                .clickable(enabled = isPrevEnabled) { onPageChanged(currentPage - 1) },
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "<", fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), fontSize = 14.sp)
+            Text(
+                text = "<",
+                fontWeight = FontWeight.Bold,
+                color = if (isPrevEnabled) Color(0xFF1E293B) else Color(0xFF94A3B8),
+                fontSize = 14.sp
+            )
         }
 
         // Page Number Buttons
-        val pagesToShow = (1..totalPages.coerceAtLeast(6)).toList()
+        val pagesToShow = (1..total).toList()
         pagesToShow.forEach { page ->
             val isSelected = page == currentPage
             val backgroundColor = if (isSelected) Color(0xFF1E293B) else Color.White
@@ -78,11 +92,21 @@ fun PaginationControls(
             modifier = Modifier
                 .size(32.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(6.dp))
-                .clickable(enabled = currentPage < totalPages) { onPageChanged(currentPage + 1) },
+                .background(if (isNextEnabled) Color.White else Color(0xFFF1F5F9))
+                .border(
+                    width = 1.dp,
+                    color = if (isNextEnabled) Color(0xFF1E293B) else Color(0xFFCBD5E1),
+                    shape = RoundedCornerShape(6.dp)
+                )
+                .clickable(enabled = isNextEnabled) { onPageChanged(currentPage + 1) },
             contentAlignment = Alignment.Center
         ) {
-            Text(text = ">", fontWeight = FontWeight.Bold, color = Color(0xFF1E293B), fontSize = 14.sp)
+            Text(
+                text = ">",
+                fontWeight = FontWeight.Bold,
+                color = if (isNextEnabled) Color(0xFF1E293B) else Color(0xFF94A3B8),
+                fontSize = 14.sp
+            )
         }
     }
 }

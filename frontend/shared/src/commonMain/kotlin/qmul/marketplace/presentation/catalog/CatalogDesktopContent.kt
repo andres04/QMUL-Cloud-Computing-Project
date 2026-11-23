@@ -2,6 +2,7 @@ package qmul.marketplace.presentation.catalog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +19,21 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +46,7 @@ import qmul.marketplace.presentation.catalog.components.PaginationControls
 import qmul.marketplace.presentation.catalog.components.ProductCard
 
 /**
- * Desktop / Wide Screen content layout matching the desktop wireframe.
+ * Desktop / Wide Screen content layout matching the desktop wireframe with compact vertical spacing.
  */
 @Composable
 fun CatalogDesktopContent(
@@ -67,17 +75,18 @@ fun CatalogDesktopContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp, vertical = 20.dp)
+                .padding(horizontal = 32.dp, vertical = 14.dp)
         ) {
-            // Category Chips Row
+            // Category Chips Row with Custom filter memory support
             CategoryChips(
                 selectedCategory = state.selectedCategory,
+                hasCustomFilter = state.customFilter != null,
                 onCategorySelected = { onEvent(CatalogEvents.OnCategorySelected(it)) }
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Results Header Stats & Sort Dropdown Row
+            // Results Header Stats & Inline Sort Dropdown Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -91,32 +100,67 @@ fun CatalogDesktopContent(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Sort By Selector Box
-                Column {
-                    Text(
-                        text = "Sort by",
-                        fontSize = 11.sp,
-                        color = Color(0xFF64748B),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(6.dp))
-                            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
+                // Sort By Interactive Inline Dropdown Combo Box
+                var sortMenuExpanded by remember { mutableStateOf(false) }
+                val sortOptions = listOf(
+                    "Most popular",
+                    "Highest rated",
+                    "Price: Low to High",
+                    "Price: High to Low",
+                    "Newest arrivals"
+                )
+
+                Box {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "${state.sortBy}  ▼",
+                            text = "Sort by:",
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
+                            color = Color(0xFF64748B),
+                            fontWeight = FontWeight.Medium
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(6.dp))
+                                .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(6.dp))
+                                .clickable { sortMenuExpanded = true }
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = "${state.sortBy}  ▼",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = sortMenuExpanded,
+                        onDismissRequest = { sortMenuExpanded = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        sortOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = option,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (state.sortBy == option) FontWeight.Bold else FontWeight.Normal,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                },
+                                onClick = {
+                                    onEvent(CatalogEvents.OnSortByChanged(option))
+                                    sortMenuExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Main Desktop Content: Sidebar + Grid
             Row(
@@ -124,7 +168,9 @@ fun CatalogDesktopContent(
             ) {
                 // Left Filter Sidebar
                 FilterSidebar(
+                    modifier = Modifier.width(220.dp),
                     filter = state.appliedFilter,
+                    maxAvailablePrice = state.maxAvailablePrice,
                     onApplyFilter = { onEvent(CatalogEvents.OnFilterApplied(it)) }
                 )
 
@@ -144,7 +190,10 @@ fun CatalogDesktopContent(
                             text = "No products found",
                             fontSize = 14.sp,
                             color = Color(0xFF64748B),
-                            modifier = Modifier.align(Alignment.Center)
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.Center)
                         )
                     } else {
                         LazyVerticalGrid(
@@ -157,7 +206,8 @@ fun CatalogDesktopContent(
                             items(state.products) { product ->
                                 ProductCard(
                                     product = product,
-                                    onAddToCart = { onEvent(CatalogEvents.OnAddToCart(it)) }
+                                    onAddToCart = { onEvent(CatalogEvents.OnAddToCart(it)) },
+                                    onProductClick = { onNavigate(Destination.ProductDetail(it.id)) }
                                 )
                             }
                         }
@@ -165,7 +215,7 @@ fun CatalogDesktopContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Bottom Pagination
             PaginationControls(
@@ -183,13 +233,7 @@ fun CatalogDesktopContent(
 private fun CatalogDesktopContentPreview() {
     val sampleProducts = listOf(
         Product("1", "Speckled Stoneware Mug", 28.00, 5.0, "", "Ceramics"),
-        Product("2", "Linen Throw Blanket", 74.00, 4.0, "", "Home & living"),
-        Product("3", "Riso Print — Coastal Fog", 42.00, 5.0, "", "Prints"),
-        Product("4", "Brass Hoop Earrings", 36.00, 4.0, "", "Jewellery"),
-        Product("5", "Walnut Serving Board", 58.00, 5.0, "", "Ceramics"),
-        Product("6", "Hand-dyed Indigo Scarf", 49.00, 4.0, "", "Vintage"),
-        Product("7", "Ceramic Planter — Large", 64.00, 5.0, "", "Ceramics"),
-        Product("8", "Vintage Levi's 501 — W32", 88.00, 4.0, "", "Vintage")
+        Product("2", "Linen Throw Blanket", 74.00, 4.0, "", "Home & living")
     )
     MaterialTheme {
         CatalogDesktopContent(

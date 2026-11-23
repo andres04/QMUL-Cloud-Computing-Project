@@ -4,5 +4,6 @@ data class ProductPage(
     val products: List<Product>,
     val currentPage: Int,
     val totalPages: Int,
-    val totalItems: Int
+    val totalItems: Int,
+    val maxAvailablePrice: Double = 300.0
 )

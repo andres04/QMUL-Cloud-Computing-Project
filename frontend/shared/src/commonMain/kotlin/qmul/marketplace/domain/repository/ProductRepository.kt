@@ -1,5 +1,6 @@
 package qmul.marketplace.domain.repository
 
+import qmul.marketplace.domain.model.ProductDetail
 import qmul.marketplace.domain.model.ProductFilter
 import qmul.marketplace.domain.model.ProductPage
 
@@ -11,4 +12,6 @@ interface ProductRepository {
         page: Int = 1,
         pageSize: Int = 20
     ): Result<ProductPage>
+
+    suspend fun getProductById(id: String): Result<ProductDetail>
 }

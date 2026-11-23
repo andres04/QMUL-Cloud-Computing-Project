@@ -10,6 +10,8 @@ plugins {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -59,15 +61,14 @@ kotlin {
         jvmMain.get().dependsOn(nonWebMain)
         iosMain.get().dependsOn(nonWebMain)
 
-        val webMain = create("webMain") {
-            dependsOn(commonMain.get())
-        }
+        val webMain = getByName("webMain")
         jsMain.get().dependsOn(webMain)
         wasmJsMain.get().dependsOn(webMain)
 
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(libs.coil.network.okhttp)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -88,6 +89,8 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

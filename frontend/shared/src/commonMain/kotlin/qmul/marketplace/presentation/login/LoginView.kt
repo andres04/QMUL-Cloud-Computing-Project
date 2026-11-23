@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 import qmul.marketplace.navigation.Destination
 
 /**
@@ -16,7 +16,7 @@ fun LoginView(
     modifier: Modifier = Modifier,
     onNavigate: (Destination) -> Unit = {},
     currentDestination: Destination = Destination.Login,
-    viewModel: LoginViewModel = koinViewModel()
+    viewModel: LoginViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

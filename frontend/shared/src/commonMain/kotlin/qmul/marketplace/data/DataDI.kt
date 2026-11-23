@@ -11,7 +11,9 @@ import org.koin.dsl.module
 import qmul.marketplace.data.network.AuthApi
 import qmul.marketplace.data.network.ProductApi
 import qmul.marketplace.data.repositories.AuthRepositoryImpl
+import qmul.marketplace.data.repositories.CartRepositoryImpl
 import qmul.marketplace.domain.repository.AuthRepository
+import qmul.marketplace.domain.repository.CartRepository
 
 val dataModule = module {
     // Ktor Client with CIO engine
@@ -35,4 +37,5 @@ val dataModule = module {
 
     // Repositories
     singleOf(::AuthRepositoryImpl) bind AuthRepository::class
+    singleOf(::CartRepositoryImpl) bind CartRepository::class
 }

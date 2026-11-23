@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -20,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,26 +43,37 @@ import androidx.compose.ui.unit.sp
 import qmul.marketplace.domain.model.ProductFilter
 
 /**
- * Filter sidebar component matching the desktop wireframe design.
+ * Filter sidebar component matching the wireframe design (Multi-category selection, custom continuous RangeSlider without gaps/dots, Rating).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSidebar(
     modifier: Modifier = Modifier,
     filter: ProductFilter = ProductFilter(),
+    maxAvailablePrice: Double = 300.0,
     onApplyFilter: (ProductFilter) -> Unit
 ) {
-    var selectedCategory by remember(filter) { mutableStateOf(filter.category ?: "Ceramics") }
-    var priceRange by remember(filter) {
+    val maxPriceFloat = maxAvailablePrice.toFloat().coerceAtLeast(10f)
+
+    var selectedCategories by remember(filter) {
         mutableStateOf(
-            (filter.minPrice?.toFloat() ?: 20f)..(filter.maxPrice?.toFloat() ?: 180f)
+            when {
+                filter.categories.isNotEmpty() -> filter.categories
+                !filter.category.isNullOrBlank() -> setOf(filter.category)
+                filter.minPrice != null || filter.maxPrice != null || filter.rating != null -> emptySet()
+                else -> setOf("Ceramics")
+            }
+        )
+    }
+    var priceRange by remember(filter, maxPriceFloat) {
+        mutableStateOf(
+            (filter.minPrice?.toFloat() ?: 0f)..(filter.maxPrice?.toFloat() ?: maxPriceFloat)
         )
     }
     var selectedRating by remember(filter) { mutableStateOf(filter.rating ?: 4.0) }
-    var selectedLocation by remember(filter) { mutableStateOf(filter.location ?: "United States") }
 
     Column(
         modifier = modifier
-            .width(220.dp)
             .background(Color.White, RoundedCornerShape(8.dp))
             .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(8.dp))
             .padding(16.dp)
@@ -86,16 +99,29 @@ fun FilterSidebar(
         Spacer(modifier = Modifier.height(8.dp))
 
         listOf("Ceramics", "Prints & posters", "Jewellery").forEach { cat ->
+            val isChecked = cat in selectedCategories
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { selectedCategory = cat }
+                    .clickable {
+                        selectedCategories = if (isChecked) {
+                            selectedCategories - cat
+                        } else {
+                            selectedCategories + cat
+                        }
+                    }
                     .padding(vertical = 2.dp)
             ) {
                 Checkbox(
-                    checked = selectedCategory == cat,
-                    onCheckedChange = { selectedCategory = cat },
+                    checked = isChecked,
+                    onCheckedChange = { checked ->
+                        selectedCategories = if (checked) {
+                            selectedCategories + cat
+                        } else {
+                            selectedCategories - cat
+                        }
+                    },
                     colors = CheckboxDefaults.colors(checkedColor = Color(0xFF1E293B))
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -130,15 +156,44 @@ fun FilterSidebar(
             )
         }
 
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Custom Styled RangeSlider (0 to maxAvailablePrice)
         RangeSlider(
             value = priceRange,
             onValueChange = { priceRange = it },
-            valueRange = 0f..300f,
-            colors = SliderDefaults.colors(
-                thumbColor = Color(0xFF1E293B),
-                activeTrackColor = Color(0xFF1E293B),
-                inactiveTrackColor = Color(0xFFE2E8F0)
-            )
+            valueRange = 0f..maxPriceFloat,
+            startThumb = {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .background(Color.White, CircleShape)
+                        .border(2.dp, Color(0xFF1E293B), CircleShape)
+                )
+            },
+            endThumb = {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .background(Color.White, CircleShape)
+                        .border(2.dp, Color(0xFF1E293B), CircleShape)
+                )
+            },
+            track = { rangeSliderState ->
+                SliderDefaults.Track(
+                    rangeSliderState = rangeSliderState,
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = Color(0xFF1E293B),
+                        inactiveTrackColor = Color(0xFFE2E8F0),
+                        activeTickColor = Color.Transparent,
+                        inactiveTickColor = Color.Transparent
+                    ),
+                    thumbTrackGapSize = 0.dp,
+                    trackInsideCornerSize = 0.dp,
+                    drawStopIndicator = null,
+                    modifier = Modifier.height(3.dp)
+                )
+            }
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -156,67 +211,32 @@ fun FilterSidebar(
         Spacer(modifier = Modifier.height(4.dp))
 
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable { selectedRating = 4.0 }
+            verticalAlignment = Alignment.CenterVertically
         ) {
             for (i in 1..5) {
                 Icon(
                     imageVector = if (i <= selectedRating) Icons.Filled.Star else Icons.Outlined.Star,
                     contentDescription = "Rating Filter Star",
                     tint = if (i <= selectedRating) Color(0xFF0F172A) else Color(0xFF94A3B8),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable { selectedRating = i.toDouble() }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider(color = Color(0xFFCBD5E1), thickness = 1.dp)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Ships from Section
-        Text(
-            text = "Ships from",
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp,
-            color = Color(0xFF64748B)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        listOf("United States", "Europe", "Asia Pacific").forEach { loc ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { selectedLocation = loc }
-                    .padding(vertical = 2.dp)
-            ) {
-                Checkbox(
-                    checked = selectedLocation == loc,
-                    onCheckedChange = { selectedLocation = loc },
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF1E293B))
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = loc,
-                    fontSize = 12.sp,
-                    color = Color(0xFF1E293B)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Apply filters Button
         Button(
             onClick = {
                 onApplyFilter(
                     ProductFilter(
-                        category = selectedCategory,
+                        category = selectedCategories.firstOrNull(),
+                        categories = selectedCategories,
                         minPrice = priceRange.start.toDouble(),
                         maxPrice = priceRange.endInclusive.toDouble(),
-                        rating = selectedRating,
-                        location = selectedLocation
+                        rating = selectedRating
                     )
                 )
             },

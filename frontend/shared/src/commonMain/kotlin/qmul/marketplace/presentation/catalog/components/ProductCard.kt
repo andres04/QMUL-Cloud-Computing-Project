@@ -3,6 +3,8 @@ package qmul.marketplace.presentation.catalog.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,67 +27,105 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import qmul.marketplace.domain.model.Product
 
 /**
- * Product card component displaying image placeholder, title, price, native star rating, and add-to-cart button.
+ * Product card component rendering image via Coil 3, hover shadow effect, title underline, standard Material ripple click, and add-to-cart action.
  */
 @Composable
 fun ProductCard(
     product: Product,
     onAddToCart: (Product) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProductClick: (Product) -> Unit = {}
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
     Card(
+        onClick = { onProductClick(product) },
+        interactionSource = interactionSource,
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(8.dp)),
+            .shadow(
+                elevation = if (isHovered) 8.dp else 1.dp,
+                shape = RoundedCornerShape(8.dp),
+                spotColor = Color(0x290F172A)
+            )
+            .border(
+                width = if (isHovered) 1.5.dp else 1.dp,
+                color = if (isHovered) Color(0xFF0F172A) else Color(0xFFCBD5E1),
+                shape = RoundedCornerShape(8.dp)
+            ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isHovered) 6.dp else 0.dp,
+            hoveredElevation = 8.dp,
+            pressedElevation = 2.dp
+        ),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
         ) {
-            // Image Placeholder with Wireframe Cross Box
+            // Product Image (Coil 3 AsyncImage with fallback to wireframe cross)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1.2f)
-                    .background(Color(0xFFF8FAFC), RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFFF8FAFC))
                     .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(4.dp))
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawLine(
-                        color = Color(0xFFCBD5E1),
-                        start = Offset(0f, 0f),
-                        end = Offset(size.width, size.height),
-                        strokeWidth = 1.5f
+                if (product.imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = product.imageUrl,
+                        contentDescription = product.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
-                    drawLine(
-                        color = Color(0xFFCBD5E1),
-                        start = Offset(size.width, 0f),
-                        end = Offset(0f, size.height),
-                        strokeWidth = 1.5f
-                    )
+                } else {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawLine(
+                            color = Color(0xFFCBD5E1),
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 1.5f
+                        )
+                        drawLine(
+                            color = Color(0xFFCBD5E1),
+                            start = Offset(size.width, 0f),
+                            end = Offset(0f, size.height),
+                            strokeWidth = 1.5f
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Product Title
+            // Product Title (Underlined when hovered)
             Text(
                 text = product.title,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 color = Color(0xFF0F172A),
+                textDecoration = if (isHovered) TextDecoration.Underline else TextDecoration.None,
                 maxLines = 1
             )
 
@@ -147,7 +187,7 @@ private fun ProductCardPreview() {
                     title = "Speckled Stoneware Mug",
                     price = 28.00,
                     rating = 5.0,
-                    imageUrl = "",
+                    imageUrl = "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop",
                     category = "Ceramics"
                 ),
                 onAddToCart = {}
