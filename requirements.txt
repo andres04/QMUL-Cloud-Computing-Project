@@ -1,0 +1,7 @@
+django 
+psycopg 
+djangorestframework 
+django-filter 
+djangorestframework-simplejwt 
+requests 
+Pillow
