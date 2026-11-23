@@ -1,6 +1,6 @@
-# QMUL CloudComputing Luxury Bag Inventory 
+# QMUL CloudComputing Luxury Bag Inventory
 
-A Django REST Framework (DRF) backend service that ingests luxury bag inventory data from the [BirkinBagStock Public API](https://birkinbagstock.com/api/v1/inventory) into PostgreSQL, enforces role-based CRUD permissions across **Superusers**, **Merchants**, and **Customers**, and provides a superuser-only admin dashboard for visualizing users and catalog ownership.
+A Django REST Framework (DRF) backend service that ingests luxury bag inventory data from the [BirkinBagStock Public API](https://birkinbagstock.com/api/v1/inventory) into PostgreSQL, enforces role-based CRUD permissions across **Superusers**, **Merchants**, and **Customers**, provides persistent **Shopping Basket / Cart** endpoints, and includes a superuser-only admin dashboard for visualizing users, baskets, and catalog ownership.
 
 ---
 
@@ -11,8 +11,9 @@ A Django REST Framework (DRF) backend service that ingests luxury bag inventory 
 - [Local Setup & Installation](#local-setup--installation)
 - [Data Ingestion & Merchant Distribution](#data-ingestion--merchant-distribution)
 - [API Endpoints Reference](#api-endpoints-reference)
-  - [Authentication & User Management (`/api/accounts/`)](#1-authentication--user-management-apiaccounts)
-  - [Product Inventory (`/inventory/`)](#2-product-inventory-inventory)
+  - [1. Authentication & User Management (`/api/accounts/`)](#1-authentication--user-management-apiaccounts)
+  - [2. Product Inventory (`/inventory/`)](#2-product-inventory-inventory)
+  - [3. Shopping Basket / Cart (`/inventory/cart/`)](#3-shopping-basket--cart-inventorycart)
 - [Testing with `curl`](#testing-with-curl)
 - [Superuser Admin Dashboard](#superuser-admin-dashboard)
 - [Cloud Database Migration (PostgreSQL Dump & Restore)](#cloud-database-migration-postgresql-dump--restore)
@@ -24,20 +25,21 @@ A Django REST Framework (DRF) backend service that ingests luxury bag inventory 
 ```text
 QMUL-Cloud-Computing-Project/
 ├── manage.py
+├── requirements.txt            # Python project dependencies
 ├── ecommerce/                  # Main project configuration (settings.py, urls.py)
 ├── accounts/                   # Custom User model, role groups, JWT auth & user management API
 │   ├── models.py               # User model with role choices & automatic Django Group sync
 │   ├── serializers.py          # Registration & user profile serializers
 │   ├── views.py                # Public registration & superuser user management endpoints
-│   ├── urls.py                 # /accounts/* routes
+│   ├── urls.py                 # /api/accounts/* routes
 │   └── admin.py                # Role-badged UserAdmin with owned product counts
-└── inventory/                  # Product catalog, API sync command, role-based CRUD & Admin
-    ├── models.py               # Product model (title, size, color, leather, condition, price, image)
+└── inventory/                  # Product catalog, shopping cart, API sync command & Admin
+    ├── models.py               # Product, Cart, and CartItem models
     ├── permissions.py          # Object-level role permissions (Superuser, Merchant, Customer)
-    ├── serializers.py          # Product serializer with ownership validation
-    ├── views.py                # ProductViewSet (CRUD, filtering, search, sync, merchant split)
-    ├── urls.py                 # /inventory/* routes
-    ├── admin.py                # Visual ProductAdmin with image thumbnails & inline owner assignment
+    ├── serializers.py          # Product, Cart, and CartItem serializers
+    ├── views.py                # ProductViewSet & CartViewSet
+    ├── urls.py                 # /inventory/* and /inventory/cart/* routes
+    ├── admin.py                # Visual ProductAdmin & CartAdmin for superusers
     └── management/
         └── commands/
             └── sync_inventory.py  # Custom command to pull & upsert external API data into PostgreSQL
@@ -49,12 +51,12 @@ QMUL-Cloud-Computing-Project/
 
 All users are automatically assigned to a matching Django `Group` (`customer`, `merchant`, or `superuser`) upon creation or update.
 
-| Role | Product Read (`GET`) | Product Create (`POST`) | Product Update/Delete (`PATCH`/`PUT`/`DELETE`) | User Management | Django Admin (`/admin/`) |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Unauthenticated** | All products | No | No | Register (`customer`/`merchant` only) | No |
-| **Customer** | All products | Own products | Own products only | No | No |
-| **Merchant** | All products | Own products | Own products only | No | No |
-| **Superuser** | All products | All products | **All products** | Full CRUD on all users | **Full visual access** |
+| Role | Product Read (`GET`) | Product Create (`POST`) | Product Update/Delete (`PATCH`/`PUT`/`DELETE`) | Shopping Cart | User Management | Django Admin (`/admin/`) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Unauthenticated** | All products | No | No | No | Register (`customer`/`merchant` only) | No |
+| **Customer** | All products | Own products | Own products only | Own cart | No | No |
+| **Merchant** | All products | Own products | Own products only | Own cart | No | No |
+| **Superuser** | All products | All products | **All products** | Own cart | Full CRUD on all users | **Full visual access** |
 
 ---
 
@@ -80,7 +82,7 @@ source env/bin/activate
 
 ### 2. Install Dependencies
 ```bash
-pip install django psycopg djangorestframework django-filter djangorestframework-simplejwt requests Pillow
+pip install -r requirements.txt
 ```
 
 ### 3. Configure PostgreSQL
@@ -101,7 +103,7 @@ DATABASES = {
 
 ### 4. Apply Migrations & Create Superuser
 ```bash
-python manage.py makemigrations 
+python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 ```
@@ -151,14 +153,14 @@ for m in merchants:
 
 | Method | Endpoint | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/accounts/register/` | Public | Register a new `customer` or `merchant` account (`superuser` self-registration is blocked). |
-| `POST` | `/api/accounts/login/` | Public | Exchange `username` and `password` for JWT `access` and `refresh` tokens. |
-| `POST` | `/api/accounts/token/refresh/` | Public | Obtain a new `access` token using a valid `refresh` token. |
-| `GET` | `/api/accounts/users/` | Superuser | List all registered users across all roles. |
-| `POST` | `/api/accounts/users/` | Superuser | Create a new user account. |
-| `GET` | `/api/accounts/users/<id>/` | Superuser | Retrieve details for a specific user. |
-| `PATCH` / `PUT` | `/api/accounts/users/<id>/` | Superuser | Update a user's profile, active status, or role. |
-| `DELETE` | `/api/accounts/users/<id>/` | Superuser | Delete a user account. |
+| `POST` | `/accounts/register/` | Public | Register a new `customer` or `merchant` account (`superuser` self-registration is blocked). |
+| `POST` | `/accounts/login/` | Public | Exchange `username` and `password` for JWT `access` and `refresh` tokens. |
+| `POST` | `/accounts/token/refresh/` | Public | Obtain a new `access` token using a valid `refresh` token. |
+| `GET` | `/accounts/users/` | Superuser | List all registered users across all roles. |
+| `POST` | `/accounts/users/` | Superuser | Create a new user account. |
+| `GET` | `/accounts/users/<id>/` | Superuser | Retrieve details for a specific user. |
+| `PATCH` / `PUT` | `/accounts/users/<id>/` | Superuser | Update a user's profile, active status, or role. |
+| `DELETE` | `/accounts/users/<id>/` | Superuser | Delete a user account. |
 
 ---
 
@@ -182,9 +184,23 @@ for m in merchants:
 
 ---
 
+### 3. Shopping Basket / Cart (`/inventory/cart/`)
+
+All cart endpoints require a valid JWT `Authorization: Bearer <ACCESS_TOKEN>` header and operate on the authenticated user's persistent cart.
+
+| Method | Endpoint | Auth Required | Request Body | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/inventory/cart/` | Authenticated | — | View current user's basket, items, `total_items`, and `total_price`. |
+| `POST` | `/inventory/cart/add/` | Authenticated | `{"product_id": 1, "quantity": 1}` | Add a product to the basket (increments quantity if already present). |
+| `PATCH` | `/inventory/cart/update-item/` | Authenticated | `{"product_id": 1, "quantity": 2}` | Set exact item quantity (`0` removes the item from the basket). |
+| `DELETE` | `/inventory/cart/remove/<product_id>/` | Authenticated | — | Remove a specific product from the basket. |
+| `DELETE` | `/inventory/cart/clear/` | Authenticated | — | Remove all items and empty the basket. |
+
+---
+
 ## Testing with `curl`
 
-### 1. Register a Merchant
+### 1. Register a Merchant or Customer
 ```bash
 curl -X POST [http://127.0.0.1:8000/api/accounts/register/](http://127.0.0.1:8000/api/accounts/register/) \
   -H "Content-Type: application/json" \
@@ -241,6 +257,45 @@ curl -X DELETE [http://127.0.0.1:8000/inventory/1/](http://127.0.0.1:8000/invent
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
+### 7. Add Item to Basket (`POST`)
+```bash
+curl -X POST [http://127.0.0.1:8000/inventory/cart/add/](http://127.0.0.1:8000/inventory/cart/add/) \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_id": 1,
+    "quantity": 1
+  }'
+```
+
+### 8. View Basket (`GET`)
+```bash
+curl -s [http://127.0.0.1:8000/inventory/cart/](http://127.0.0.1:8000/inventory/cart/) \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" | python -m json.tool
+```
+
+### 9. Update Basket Item Quantity (`PATCH`)
+```bash
+curl -X PATCH [http://127.0.0.1:8000/inventory/cart/update-item/](http://127.0.0.1:8000/inventory/cart/update-item/) \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_id": 1,
+    "quantity": 3
+  }'
+```
+
+### 10. Remove Item or Clear Basket (`DELETE`)
+```bash
+# Remove single product
+curl -X DELETE [http://127.0.0.1:8000/inventory/cart/remove/1/](http://127.0.0.1:8000/inventory/cart/remove/1/) \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+
+# Clear entire basket
+curl -X DELETE [http://127.0.0.1:8000/inventory/cart/clear/](http://127.0.0.1:8000/inventory/cart/clear/) \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
 ---
 
 ## Superuser Admin Dashboard
@@ -254,6 +309,7 @@ Django Admin is locked exclusively to `is_superuser=True` accounts and is access
 Features included:
 - **Users View:** Color-coded role badges (`Superuser`, `Merchant`, `Customer`), role filters, and live **Products Owned** counters per user.
 - **Products View:** Inline image thumbnails, formatted currency pricing, sidebar filters (`owner`, `size`, `color`, `leather`, `condition`), and inline dropdowns to reassign product ownership between merchants.
+- **Carts View:** Inspect active customer/user shopping carts, item quantities, and computed subtotals.
 
 ---
 
