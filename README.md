@@ -80,7 +80,7 @@ source env/bin/activate
 
 ### 2. Install Dependencies
 ```bash
-pip install django psycopg[binary] djangorestframework django-filter djangorestframework-simplejwt requests Pillow
+pip install django psycopg djangorestframework django-filter djangorestframework-simplejwt requests Pillow
 ```
 
 ### 3. Configure PostgreSQL
