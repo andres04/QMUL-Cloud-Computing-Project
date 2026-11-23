@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from accounts.models import User
-from .models import Product
+from .models import Product, Cart, CartItem
 
 
 @admin.register(Product)
@@ -44,3 +44,15 @@ class ProductAdmin(admin.ModelAdmin):
         if obj.price is not None:
             return f"${obj.price:,.2f}"
         return 'N/A'
+
+
+
+class CartItemInline(admin.TabularInline):
+    model = CartItem
+    extra = 0
+    readonly_fields = ('product', 'quantity', 'subtotal')
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'total_items', 'total_price', 'updated_at')
+    inlines = [CartItemInline]
