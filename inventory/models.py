@@ -43,7 +43,7 @@ class Cart(models.Model):
 
     @property
     def total_items(self):
-        return sum(item.quality for item in self.items.all())
+        return sum(item.quantity for item in self.items.all())
 
     def __str__(self):
         return f"Cart of {self.user.username}"
@@ -60,9 +60,9 @@ class CartItem(models.Model):
 
     @property
     def subtotal(self):
-        if self.prodcut.price is None:
+        if self.product.price is None:
             return 0
         return self.product.price * self.quantity
 
     def __str__(self):
-        return f"{self.quality} x {self.product.title}"
+        return f"{self.quantity} x {self.product.title}"

@@ -47,14 +47,14 @@ class CartViewSet(viewsets.ViewSet):
         quantity = int(request.data.get('quantity', 1))
 
         if not product_id or quantity < 1:
-            return Response({'error': 'Valid product-id and quantoty >=1 are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Valid product-id and quantity >=1 are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         product = get_object_or_404(Product, id=product_id)        
         cart = self._get_cart(request.user)
 
         item, created = CartItem.objects.get_or_create(cart=cart, product=product, defaults={'quantity': quantity})
         if not created:
-            item.quality += quantity
+            item.quantity += quantity
             item.save()
         return Response(CartSerializer(cart).data, status = status.HTTP_200_OK)
 
