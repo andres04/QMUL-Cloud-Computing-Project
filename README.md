@@ -11,7 +11,7 @@ A Django REST Framework (DRF) backend service that ingests luxury bag inventory 
 - [Local Setup & Installation](#local-setup--installation)
 - [Data Ingestion & Merchant Distribution](#data-ingestion--merchant-distribution)
 - [API Endpoints Reference](#api-endpoints-reference)
-  - [1. Authentication & User Management (`/api/accounts/`)](#1-authentication--user-management-apiaccounts)
+  - [1. Authentication & User Management (`/accounts/`)](#1-authentication--user-management-apiaccounts)
   - [2. Product Inventory (`/inventory/`)](#2-product-inventory-inventory)
   - [3. Shopping Basket / Cart (`/inventory/cart/`)](#3-shopping-basket--cart-inventorycart)
 - [Testing with `curl`](#testing-with-curl)
@@ -31,7 +31,7 @@ QMUL-Cloud-Computing-Project/
 │   ├── models.py               # User model with role choices & automatic Django Group sync
 │   ├── serializers.py          # Registration & user profile serializers
 │   ├── views.py                # Public registration & superuser user management endpoints
-│   ├── urls.py                 # /api/accounts/* routes
+│   ├── urls.py                 # /accounts/* routes
 │   └── admin.py                # Role-badged UserAdmin with owned product counts
 └── inventory/                  # Product catalog, shopping cart, API sync command & Admin
     ├── models.py               # Product, Cart, and CartItem models
@@ -149,7 +149,7 @@ for m in merchants:
 
 ## API Endpoints Reference
 
-### 1. Authentication & User Management (`/api/accounts/`)
+### 1. Authentication & User Management (`/accounts/`)
 
 | Method | Endpoint | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
@@ -202,7 +202,7 @@ All cart endpoints require a valid JWT `Authorization: Bearer <ACCESS_TOKEN>` he
 
 ### 1. Register a Merchant or Customer
 ```bash
-curl -X POST [http://127.0.0.1:8000/api/accounts/register/](http://127.0.0.1:8000/api/accounts/register/) \
+curl -X POST [http://127.0.0.1:8000/accounts/register/](http://127.0.0.1:8000/accounts/register/) \
   -H "Content-Type: application/json" \
   -d '{
     "username": "merchant1",
@@ -214,7 +214,7 @@ curl -X POST [http://127.0.0.1:8000/api/accounts/register/](http://127.0.0.1:800
 
 ### 2. Login & Get JWT Access Token
 ```bash
-curl -X POST [http://127.0.0.1:8000/api/accounts/login/](http://127.0.0.1:8000/api/accounts/login/) \
+curl -X POST [http://127.0.0.1:8000/accounts/login/](http://127.0.0.1:8000/accounts/login/) \
   -H "Content-Type: application/json" \
   -d '{
     "username": "merchant1",
