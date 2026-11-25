@@ -7,8 +7,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from inventory.models import Product
-from inventory.serializers import ProductSerializer
+from inventory.models import Product, Cart, CartItem
+from inventory.serializers import ProductSerializer, CartSerializer
 
 User = get_user_model()
 
@@ -24,19 +24,19 @@ class ProductModelTest(TestCase):
             role=User.Role.MERCHANT
         )
         self.product = Product.objects.create(
-            title='Leather Jacket',
+            title='Leather Bag',
             owner=self.merchant,
             size=42,
             color='Black',
             leather='Genuine',
             condition='New',
             price=Decimal('67.67'),
-            image='https://example.com/jacket.jpg'
+            image='https://example.com/bag.jpg'
         )
 
     def test_product_creation(self):
         #  test product created with correct fields
-        self.assertEqual(self.product.title, 'Leather Jacket')
+        self.assertEqual(self.product.title, 'Leather Bag')
         self.assertEqual(self.product.owner, self.merchant)
         self.assertEqual(self.product.size, 42)
         self.assertEqual(self.product.color, 'Black')
@@ -45,7 +45,7 @@ class ProductModelTest(TestCase):
     def test_product_string(self):
         # test the product string
 
-        expected = "Leather Jacket - Black (42)"
+        expected = "Leather Bag - Black (42)"
         self.assertEqual(str(self.product), expected)
 
 
@@ -424,4 +424,225 @@ class ProductRolePermissionsTest(TestCase):
         data = {'title': 'Hacked', 'size': 42, 'color': 'Black', 'price': Decimal('67.67')}
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+
+class CartTest(TestCase):
+    # tests the cart
+
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username='customer123',
+            email='customer123@example.com',
+            password='password123',
+            role=User.Role.CUSTOMER
+        )
+        self.product = Product.objects.create(
+            title='Leather Bag',
+            price=Decimal('67.67')
+        )
+        self.cart = Cart.objects.create(user=self.customer)
+
+    def test_cart_totals(self):
+        # test price and total items
+
+        CartItem.objects.create(cart=self.cart, product=self.product, quantity=2)
+
+        self.assertEqual(self.cart.total_items, 2)
+        self.assertEqual(self.cart.total_price, Decimal('135.34'))
+
+    def test_cart_string(self):
+        # test cart string
+        self.assertEqual(str(self.cart), 'Cart of customer123')
+
+
+    def test_cart_subtotal(self):
+        # test item subtotals
+
+        item = CartItem.objects.create(cart=self.cart, product=self.product, quantity=3)
+
+        self.assertEqual(item.subtotal, Decimal('203.01'))
+        self.assertEqual(str(item), '3 x Leather Bag')
+
+
+
+class CartSerializerTest(TestCase):
+    # tests cart serializer
+
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username='customer123',
+            email='customer123@example.com',
+            password='password123',
+            role=User.Role.CUSTOMER
+        )
+        self.product = Product.objects.create(
+            title='Leather Bag',
+            price=Decimal('67.67'),
+            image='https://example.com/bag.jpg'
+        )
+        self.cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=self.cart, product=self.product, quantity=2)
+
+
+    def test_cart_serialization(self):
+        # test cart serialization
+
+        data = CartSerializer(self.cart).data
+
+        self.assertEqual(data['user'], self.customer.pk)
+        self.assertEqual(data['total_items'], 2)
+        self.assertEqual(data['total_price'], Decimal('135.34'))
+        self.assertEqual(data['items'][0]['product'], self.product.pk)
+        self.assertEqual(data['items'][0]['product_title'], 'Leather Bag')
+        self.assertEqual(data['items'][0]['product_price'], Decimal('67.67'))
+        self.assertEqual(data['items'][0]['product_image'], 'https://example.com/bag.jpg')
+        self.assertEqual(data['items'][0]['quantity'], 2)
+        self.assertEqual(data['items'][0]['subtotal'], Decimal('135.34'))
+
+
+class CartViewTest(TestCase):
+    # tests cart view set api
+
+    def setUp(self):
+        self.client: APIClient = APIClient()
+        self.customer = User.objects.create_user(
+            username='customer123',
+            email='customer123@example.com',
+            password='password123',
+            role=User.Role.CUSTOMER
+        )
+        self.other_customer = User.objects.create_user(
+            username='customer456',
+            email='customer456@example.com',
+            password='password123',
+            role=User.Role.CUSTOMER
+        )
+        self.product = Product.objects.create(
+            title='Leather Bag',
+            price=Decimal('67.67')
+        )
+        self.second_product = Product.objects.create(
+            title='Red Leather Bag',
+            price=Decimal('76.76')
+        )
+        self.url = reverse('cart-list')
+
+
+    def test_cart_authentication(self):
+        # test need auth to access cart
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_add_product_to_cart(self):
+        # test adding a product creates a cart item
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.post(
+            reverse('cart-add'),
+            {'product_id': self.product.pk, 'quantity': 2},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_items'], 2)
+        self.assertEqual(response.data['total_price'], Decimal('135.34'))
+
+        self.assertEqual(CartItem.objects.get(cart__user=self.customer, product=self.product).quantity, 2)
+
+    def test_adding_product_multiple_times(self):
+        # test adding a product twice
+        self.client.force_authenticate(user=self.customer)
+        url = reverse('cart-add')
+        self.client.post(url, {'product_id': self.product.pk, 'quantity': 2}, format='json')
+        response = self.client.post(url, {'product_id': self.product.pk, 'quantity': 3}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_items'], 5)
+
+        self.assertEqual(CartItem.objects.filter(cart__user=self.customer).count(), 1)
+
+
+    def test_add_non_product(self):
+        # test adding a non existing product returns erorr
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.post(
+            reverse('cart-add'),
+            {'product_id': 99999, 'quantity': 1},
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_cart_item_quantity(self):
+        # test updating a cart item quantity
+        self.client.force_authenticate(user=self.customer)
+        self.client.post(
+            reverse('cart-add'),
+            {'product_id': self.product.pk, 'quantity': 2},
+            format='json'
+        )
+        response = self.client.patch(
+            reverse('cart-update-item'),
+            {'product_id': self.product.pk, 'quantity': 4},
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_items'], 4)
+
+        self.assertEqual(response.data['total_price'], Decimal('270.68'))
+
+    def test_set_cart_item_to_zero_removes_it(self):
+        # test setting cart item to zero removes it
+        self.client.force_authenticate(user=self.customer)
+        self.client.post(reverse('cart-add'), {'product_id': self.product.pk}, format='json')
+        response = self.client.patch(
+            reverse('cart-update-item'),
+            {'product_id': self.product.pk, 'quantity': 0},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(response.data['total_items'], 0)
+        self.assertFalse(CartItem.objects.filter(cart__user=self.customer).exists())
+
+
+    def test_remove_cart_item(self):
+        # tests removing cart item
+        self.client.force_authenticate(user=self.customer)
+        self.client.post(reverse('cart-add'), {'product_id': self.product.pk}, format='json')
+        response = self.client.delete(
+            reverse('cart-remove-item', kwargs={'product_id': self.product.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_items'], 0)
+        self.assertFalse(CartItem.objects.filter(cart__user=self.customer).exists())
+
+
+    def test_users_only_access_their_cart(self):
+        # test cart items linked to user
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, product=self.product)
+        self.client.force_authenticate(user=self.other_customer)
+        response = self.client.delete(
+            reverse('cart-remove-item', kwargs={'product_id': self.product.pk})
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        self.assertTrue(CartItem.objects.filter(cart=cart, product=self.product).exists())
+
+    def test_clear_cart(self):
+        # test clearing cart
+        self.client.force_authenticate(user=self.customer)
+        self.client.post(reverse('cart-add'), {'product_id': self.product.pk}, format='json')
+        self.client.post(reverse('cart-add'), {'product_id': self.second_product.pk}, format='json')
+
+        response = self.client.delete(reverse('cart-clear'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_items'], 0)
+        self.assertEqual(response.data['items'], [])
+
+        self.assertFalse(CartItem.objects.filter(cart__user=self.customer).exists())
+
 
